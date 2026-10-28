@@ -1,0 +1,51 @@
+
+import java.io.*;
+import java.net.*;
+
+public class ChatIntegrationTest {
+    public static void main(String[] args) throws Exception {
+        Thread serverThread = new Thread(() -> Server.main(null));
+        serverThread.setDaemon(true);
+        serverThread.start();
+
+        Socket socket = null;
+
+        for (int i = 0; i < 30; i++) {
+            try {
+                socket = new Socket("127.0.0.1", 5000);
+                break;
+            } catch (IOException e) {
+                Thread.sleep(200);
+            }
+        }
+
+        if (socket == null) {
+            throw new AssertionError("Server did not start");
+        }
+
+        try (
+            Socket client = socket;
+            BufferedReader in = new BufferedReader(
+                new InputStreamReader(client.getInputStream())
+            );
+            PrintWriter out = new PrintWriter(
+                client.getOutputStream(), true
+            )
+        ) {
+            String welcome = in.readLine();
+
+            if (!"Connected to Java Chat Server!".equals(welcome)) {
+                throw new AssertionError("Welcome message incorrect");
+            }
+
+            out.println("Hello");
+            String response = in.readLine();
+
+            if (!"Server received: Hello".equals(response)) {
+                throw new AssertionError("Server response incorrect");
+            }
+
+            System.out.println("PASS: Connection and message test");
+        }
+    }
+}
